@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WellBot - Welcome</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body {
+            justify-content: center;
+            align-items: center;
+            /* Background is handled by style.css now */
+        }
+
+        .login-wrapper {
+            display: flex;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+            border-radius: 24px;
+            overflow: hidden;
+            background: white;
+            max-width: 900px;
+            width: 90%;
+            margin: 2rem;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .login-left {
+            flex: 1;
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-right {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            color: var(--text-light);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-wrapper">
+        <!-- Left Side: Forms -->
+        <div class="login-left">
+            <div style="margin-bottom: 2rem; display: flex; gap: 1rem;">
+                <button class="tab-btn active" onclick="showTab('login')">Login</button>
+                <button class="tab-btn" onclick="showTab('register')">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login-section">
+                <h2 style="color: var(--primary-color);">Welcome Back</h2>
+                <p>Please enter your details to sign in.</p>
+
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="login-email" placeholder="student@university.edu">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" placeholder="••••••••">
+                </div>
+
+                <button class="btn btn-primary" style="width: 100%;" onclick="login()">Login</button>
+
+                <div style="text-align: center; margin: 1.5rem 0; color: #aaa;">or</div>
+
+                <a href="/login/google" class="btn btn-outline"
+                    style="width: 100%; border-color: #db4437; color: #db4437; text-decoration: none; display: flex; justify-content: center; align-items: center;">
+                    <span style="font-weight: bold; margin-right: 10px;">G</span> Sign in with Google
+                </a>
+
+                <div id="login-message" style="margin-top: 1rem; text-align: center; font-size: 0.9rem;"></div>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register-section" class="hidden">
+                <h2 style="color: var(--primary-color);">Create Account</h2>
+                <p>Join WellBot for a healthier journey.</p>
+
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="reg-name" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="reg-email" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="reg-password" placeholder="Create strong password">
+                </div>
+                <div class="form-group">
+                    <label>Language Preference</label>
+                    <select id="reg-language"
+                        style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; background: #f8f9fa;">
+                        <option value="English">English</option>
+                        <option value="Spanish">Spanish</option>
+                        <option value="French">French</option>
+                        <option value="German">German</option>
+                        <option value="Hindi">Hindi</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary" style="width: 100%;" onclick="register()">Sign Up Free</button>
+                <div id="reg-message" style="margin-top: 1rem; text-align: center; font-size: 0.9rem;"></div>
+            </div>
+        </div>
+
+        <!-- Right Side: Art/Info -->
+        <div class="login-right">
+            <h1>WellBot</h1>
+            <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem;">Your AI-Powered Global Wellness Assistant.</p>
+            <div style="font-size: 4rem; margin: 2rem 0; animation: float 6s infinite;">🧘</div>
+            <p style="font-size: 0.9rem; opacity: 0.8;">Symptoms check • Health Analysis • Reports OCR</p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:5000";
+        if (localStorage.getItem('token')) loadProfile();
+
+        function showTab(tab) {
+            const loginEl = document.getElementById('login-section');
+            const regEl = document.getElementById('register-section');
+            const tabs = document.querySelectorAll('.tab-btn');
+
+            if (tab === 'login') {
+                loginEl.classList.remove('hidden');
+                regEl.classList.add('hidden');
+                tabs[0].classList.add('active');
+                tabs[1].classList.remove('active');
+            } else {
+                loginEl.classList.add('hidden');
+                regEl.classList.remove('hidden');
+                tabs[0].classList.remove('active');
+                tabs[1].classList.add('active');
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const msg = document.getElementById('login-message');
+            msg.textContent = "Verifying...";
+
+            try {
+                const res = await fetch(`${API_URL}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('token', data.token);
+                    window.location.href = "/dashboard";
+                } else msg.textContent = data.message;
+            } catch (e) { msg.textContent = "Connection Error"; }
+        }
+
+        async function register() {
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value.trim();
+            const language = document.getElementById('reg-language').value;
+            const msg = document.getElementById('reg-message');
+            msg.textContent = "Registering...";
+
+            try {
+                const res = await fetch(`${API_URL}/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, password, language }) });
+                const data = await res.json();
+
+                if (res.ok) {
+                    msg.style.color = "green";
+                    msg.textContent = "Success! Please Login.";
+                    setTimeout(() => showTab('login'), 1500);
+                }
+                else {
+                    msg.style.color = "red";
+                    msg.textContent = data.message || "Error registering";
+                }
+            } catch (e) {
+                msg.style.color = "red";
+                msg.textContent = "Connection Error";
+            }
+        }
+
+        async function loadProfile() {
+            // Validate token
+            try {
+                const res = await fetch(`${API_URL}/user/profile`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+                if (res.ok) window.location.href = "/dashboard";
+            } catch (e) { }
+        }
+
+        function googleLogin() { document.getElementById('account-overlay').style.display = 'flex'; }
+
+        function startGoogleProgress(name, email) {
+            document.getElementById('account-overlay').style.display = 'none';
+            document.getElementById('google-overlay').style.display = 'flex';
+            const status = document.getElementById('google-status');
+
+            setTimeout(() => { status.textContent = "Verifying details..."; }, 1000);
+            setTimeout(() => {
+                status.textContent = "Success!";
+                window.location.href = "/dashboard";
+            }, 2500);
+        }
+    </script>
+</body>
+
+</html>

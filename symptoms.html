@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WellBot - Symptoms</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 2rem 0;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .checkbox-item:hover {
+            border-color: var(--primary-color);
+            background: #f9f9f9;
+            transform: translateX(5px);
+        }
+
+        .checkbox-item input {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        #result {
+            margin-top: 2rem;
+            padding: 2rem;
+            border-radius: 12px;
+            background: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="brand">WellBot Symptoms</div>
+        <a href="/dashboard" class="btn btn-outline" style="border:none;">Back to Dashboard</a>
+    </nav>
+
+    <div class="container" style="max-width: 800px;">
+        <div class="glass-card">
+            <h2 style="color: var(--primary-color);">Describe Your Symptoms</h2>
+            <p>Select what you are feeling today for a preliminary AI check.</p>
+
+            <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" value="fever"> Fever / High Temperature</label>
+                <label class="checkbox-item"><input type="checkbox" value="headache"> Headache / Migraine</label>
+                <label class="checkbox-item"><input type="checkbox" value="cough"> Dry Cough / Sore Throat</label>
+                <label class="checkbox-item"><input type="checkbox" value="fatigue"> Fatigue / Weakness</label>
+                <label class="checkbox-item"><input type="checkbox" value="nausea"> Nausea / Stomach Pain</label>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%;" onclick="analyze()">Analyze Symptoms</button>
+
+            <div id="result">
+                <h3 style="color: #2e7d32; margin-bottom: 1rem;">Analysis Result</h3>
+                <p id="result-text" style="color: #1b5e20; font-size: 1.1rem;"></p>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 20px;">*Note: This is an AI simulation. Please
+                    consult a doctor for advice.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function analyze() {
+            const resultBox = document.getElementById('result');
+            const resultText = document.getElementById('result-text');
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+
+            if (checkboxes.length === 0) { alert("Please select at least one symptom."); return; }
+
+            let symptoms = [];
+            checkboxes.forEach((cb) => symptoms.push(cb.value));
+
+            // Show Loading
+            resultBox.style.display = 'block';
+            resultText.innerHTML = "<i>Consulting with AI Doctor...</i>";
+
+            try {
+                // Construct query
+                const query = "I am experiencing the following symptoms: " + symptoms.join(", ") + ". What could be the cause and what should I do?";
+
+                // Call Real AI API
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: query })
+                });
+
+                const data = await response.json();
+
+                // Display Result
+                resultText.innerHTML = (data.response || "Error: Could not get analysis.").replace(/\n/g, "<br>");
+
+            } catch (e) {
+                resultText.innerHTML = "Error: Could not connect to the server.";
+            }
+        }
+    </script>
+</body>
+
+</html>

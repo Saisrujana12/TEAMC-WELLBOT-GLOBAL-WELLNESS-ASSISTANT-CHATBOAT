@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WellBot - Reports</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* Override primary for this page */
+        :root {
+            --primary-color: #2ecc71;
+            --primary-dark: #27ae60;
+        }
+
+        .upload-area {
+            border: 3px dashed #e0e0e0;
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: #f0fdf4;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #ccc;
+            margin-bottom: 1rem;
+            transition: color 0.3s;
+        }
+
+        .upload-area:hover .upload-icon {
+            color: var(--primary-color);
+        }
+
+        #progress-area {
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--primary-color);
+            transition: width 0.5s ease;
+        }
+
+        #result-area {
+            margin-top: 2rem;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .ocr-text {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="brand" style="color: var(--primary-color);">Report Scanner</div>
+        <a href="/dashboard" class="btn btn-outline" style="border:none;">Back to Dashboard</a>
+    </nav>
+
+    <div class="container" style="max-width: 700px;">
+        <div class="glass-card">
+            <h2 style="color: var(--primary-color);">Upload Medical Report</h2>
+            <p>We accept JPG, PNG, and PDF for AI Analysis.</p>
+
+            <form id="upload-form">
+                <div class="upload-area" onclick="document.getElementById('file-input').click()">
+                    <div class="upload-icon">📄</div>
+                    <h3 id="file-name" style="margin:0; color: var(--text-color);">Click or Drop File Here</h3>
+                    <p style="font-size: 0.8rem; margin-top:0.5rem;">Maximum file size: 5MB</p>
+                    <input type="file" id="file-input" name="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none;">
+                </div>
+                <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 2rem;"
+                    onclick="uploadAndScan()">Upload & Analyze</button>
+            </form>
+
+            <div id="progress-area">
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span style="font-weight:600;" id="status-text">Uploading...</span>
+                    <span id="percent-text">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+            </div>
+
+            <div id="result-area">
+                <h3 style="color: var(--primary-color);">Analysis Complete</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                    <div><strong>Type:</strong> <span id="res-type">--</span></div>
+                    <div><strong>Status:</strong> <span id="res-status">--</span></div>
+                </div>
+                <strong>Summary:</strong>
+                <div class="ocr-text" id="res-summary">--</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const fileNameDisplay = document.getElementById('file-name');
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) fileNameDisplay.textContent = fileInput.files[0].name;
+        });
+
+        async function uploadAndScan() {
+            if (fileInput.files.length === 0) { alert("Please select a file first."); return; }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const progressArea = document.getElementById('progress-area');
+            const progressFill = document.getElementById('progress-fill');
+            const statusText = document.getElementById('status-text');
+            const percentText = document.getElementById('percent-text');
+            const resultArea = document.getElementById('result-area');
+
+            resultArea.style.display = 'none';
+            progressArea.style.display = 'block';
+            progressFill.style.width = '10%';
+
+            try {
+                // Mock progress
+                let p = 10;
+                const interval = setInterval(() => {
+                    p += 10;
+                    if (p > 90) clearInterval(interval);
+                    progressFill.style.width = p + '%';
+                    percentText.textContent = p + '%';
+                    if (p > 50) statusText.textContent = "Scanning Document (AI)...";
+                }, 200);
+
+                const res = await fetch('/report', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                clearInterval(interval);
+                progressFill.style.width = '100%';
+                percentText.textContent = '100%';
+                statusText.textContent = "Complete!";
+
+                setTimeout(() => {
+                    if (res.ok) {
+                        document.getElementById('res-type').textContent = data.type;
+                        document.getElementById('res-status').textContent = data.status;
+                        document.getElementById('res-summary').textContent = data.summary;
+                        resultArea.style.display = 'block';
+                    } else alert(data.error || "Upload failed");
+                }, 800);
+
+            } catch (err) { alert("Server Error"); progressArea.style.display = 'none'; }
+        }
+    </script>
+</body>
+
+</html>

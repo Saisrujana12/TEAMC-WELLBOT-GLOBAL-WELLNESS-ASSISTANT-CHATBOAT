@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WellBot - Dashboard</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Chart Containers */
+        .chart-container {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1rem;
+            margin-top: 1rem;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+    <style>
+        .welcome-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--glass-shadow);
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .welcome-banner::after {
+            content: "🌿";
+            position: absolute;
+            right: 20px;
+            bottom: -20px;
+            font-size: 10rem;
+            opacity: 0.1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="brand">WellBot</a>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="text-align: right;">
+                <div style="font-weight: 600; font-size: 0.9rem;" id="nav-name">User</div>
+                <div style="font-size: 0.8rem; color: var(--text-light);" id="nav-email">user@example.com</div>
+            </div>
+            <div
+                style="width: 40px; height: 40px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold;">
+                U</div>
+            <button class="btn btn-outline" style="border:none; color: var(--warning-color); font-size: 1.5rem;"
+                onclick="logout()" title="Logout">⏻</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Welcome Banner -->
+        <div class="welcome-banner">
+            <h1 style="color: white; margin-bottom: 0.5rem;" id="welcome-msg">Welcome back!</h1>
+            <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem;">Here is your personal wellness overview for
+                today.</p>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+
+            <!-- Symptoms Card -->
+            <div class="glass-card">
+                <div class="feature-icon">🌡️</div>
+                <h3>Symptom Checker</h3>
+                <p>Feeling unwell? Describe your symptoms for an instant AI analysis and advice.</p>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;"
+                    onclick="window.location.href='/symptoms'">Start Check</button>
+            </div>
+
+            <!-- Health Trends & Charts (Spans 2 Columns) -->
+            <div class="glass-card" style="grid-column: span 2;">
+                <div class="feature-icon">📈</div>
+                <h3>Health Trends</h3>
+                <p>Visualize your wellness journey with AI-driven insights.</p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                    <!-- Wellness Score -->
+                    <div>
+                        <h4 style="margin-bottom: 0.5rem; color: var(--primary-color);">Wellness Score</h4>
+                        <div class="chart-container" style="height: 200px;">
+                            <canvas id="wellnessChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Activity -->
+                    <div>
+                        <h4 style="margin-bottom: 0.5rem; color: var(--primary-color);">Weekly Activity</h4>
+                        <div class="chart-container" style="height: 200px;">
+                            <canvas id="activityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BMI Trend -->
+                <div style="margin-top: 1.5rem;">
+                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-color);">BMI History</h4>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="bmiChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Card -->
+            <div class="glass-card">
+                <div class="feature-icon">📄</div>
+                <h3>Upload Reports</h3>
+                <p>Scan medical documents (PDF/Images) using our simulated OCR technology.</p>
+                <button class="btn btn-secondary" style="width: 100%; margin-top: 1rem;"
+                    onclick="window.location.href='/report'">Upload File</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Chat Widget -->
+    <div class="chat-fab" onclick="toggleChat()" title="Chat with WellBot">💬</div>
+
+    <div class="chat-window" id="chat-window">
+        <div class="chat-header">
+            <span>WellBot Assistant</span>
+            <span style="cursor:pointer; font-size: 1.2rem;" onclick="toggleChat()">×</span>
+        </div>
+        <div class="chat-body" id="chat-body">
+            <div class="message msg-bot">Hello! I am WellBot. How can I help you regarding your wellness today?</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="handleEnter(event)">
+            <button class="btn btn-primary" style="padding: 10px 15px; border-radius: 50%;"
+                onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:5000";
+
+        // Handle OAuth Token from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get('token');
+
+        console.log("Checking URL for token:", urlToken); // DEBUG
+
+        if (urlToken) {
+            console.log("Saving token to localStorage"); // DEBUG
+            localStorage.setItem('token', urlToken);
+            // Clean URL to remove token
+            window.history.replaceState({}, document.title, "/dashboard");
+        }
+
+        const token = localStorage.getItem('token');
+        console.log("Current Token in Storage:", token); // DEBUG
+
+        if (!token) {
+            console.log("No token found, redirecting to login."); // DEBUG
+            window.location.href = "/";
+        }
+        else loadDashboard();
+
+        async function loadDashboard() {
+            try {
+                const res = await fetch(`${API_URL}/user/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('nav-name').textContent = data.name;
+                    document.getElementById('nav-email').textContent = data.email;
+                    document.getElementById('welcome-msg').textContent = `Hello, ${data.name}!`;
+
+                    // Load Charts after user is verified
+                    loadCharts();
+                } else logout();
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadCharts() {
+            try {
+                const res = await fetch('/api/health-data');
+                const data = await res.json();
+
+                // 1. Wellness Score (Doughnut)
+                new Chart(document.getElementById('wellnessChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Wellness', 'Remaining'],
+                        datasets: [{
+                            data: [data.wellness_score, 100 - data.wellness_score],
+                            backgroundColor: ['#2ecc71', 'rgba(0,0,0,0.05)'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { cutout: '75%', responsive: true, maintainAspectRatio: false }
+                });
+
+                // 2. Activity (Bar)
+                new Chart(document.getElementById('activityChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.labels_days,
+                        datasets: [{
+                            label: 'Activity Level',
+                            data: data.activity,
+                            backgroundColor: '#3498db',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+                });
+
+                // 3. BMI Trend (Line)
+                new Chart(document.getElementById('bmiChart'), {
+                    type: 'line',
+                    data: {
+                        labels: data.labels_months,
+                        datasets: [{
+                            label: 'BMI Trend',
+                            data: data.bmi_history,
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+
+            } catch (e) { console.error("Error loading charts:", e); }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = "/";
+        }
+
+        /* Chat Functions */
+        function toggleChat() {
+            const chat = document.getElementById('chat-window');
+            chat.style.display = (chat.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        function handleEnter(e) { if (e.key === 'Enter') sendMessage(); }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const body = document.getElementById('chat-body');
+            const text = input.value.trim();
+
+            if (text) {
+                // User Message
+                const userMsg = document.createElement('div');
+                userMsg.className = 'message msg-user';
+                userMsg.textContent = text;
+                body.appendChild(userMsg);
+                input.value = '';
+                body.scrollTop = body.scrollHeight;
+
+                // Loading Indicator
+                const loadingMsg = document.createElement('div');
+                loadingMsg.className = 'message msg-bot';
+                loadingMsg.textContent = "Thinking...";
+                body.appendChild(loadingMsg);
+                body.scrollTop = body.scrollHeight;
+
+                try {
+                    // Call Real AI API
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ message: text })
+                    });
+
+                    const data = await response.json();
+
+                    // Remove loading message
+                    body.removeChild(loadingMsg);
+
+                    // Bot Response
+                    const botMsg = document.createElement('div');
+                    botMsg.className = 'message msg-bot';
+                    botMsg.textContent = data.response || "Sorry, I am having trouble connecting to my brain.";
+                    body.appendChild(botMsg);
+                    body.scrollTop = body.scrollHeight;
+
+                } catch (error) {
+                    body.removeChild(loadingMsg);
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'message msg-bot';
+                    errorMsg.textContent = "Error: Could not reach the server.";
+                    body.appendChild(errorMsg);
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
